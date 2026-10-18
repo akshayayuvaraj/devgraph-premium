@@ -1,0 +1,23 @@
+{
+  "name": "devgraph-premium",
+  "version": "0.1.0",
+  "type": "module",
+  "engines": {
+    "node": ">=22.9"
+  },
+  "scripts": {
+    "db": "docker compose up -d",
+    "seed:demo": "node --env-file-if-exists=.env src/seed-demo.js",
+    "init": "node --env-file-if-exists=.env src/init.js",
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "test": "node --test --test-concurrency=1 \"test/*.test.js\"",
+    "reset-password": "node --env-file-if-exists=.env scripts/reset-password.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "falkordb": "^6.2.0"
+  },
+  "devDependencies": {
+    "jsdom": "^25.0.1"
+  }
+}

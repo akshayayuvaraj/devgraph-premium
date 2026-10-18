@@ -1,0 +1,58 @@
+<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DevGraph AI: traceable incident investigation on a knowledge graph</title><meta name="description" content="DevGraph AI is a graph-driven incident investigation agent: it traverses real dependencies in FalkorDB, remembers earlier investigations, and explains every decision with evidence.">
+<link rel="icon" href="/brand/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css">
+<style>
+header.top{position:sticky;top:0;z-index:5;backdrop-filter:blur(12px);background:color-mix(in srgb,var(--bg) 80%,transparent);border-bottom:1px solid var(--line)}
+.wrap{max-width:1160px;margin:auto;padding:0 24px}.bar{display:flex;align-items:center;justify-content:space-between;height:64px;gap:12px}.bar nav{display:flex;gap:22px;align-items:center}.bar nav a{color:var(--mut);text-decoration:none;font-size:14px}.bar nav a:hover{color:var(--ink)}
+.logo{height:34px}.hero{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:center;padding:72px 0 56px}@media(max-width:900px){.hero{grid-template-columns:1fr}.bar nav a:not(.btn){display:none}}
+.kicker{display:inline-block;padding:5px 12px;border:1px solid var(--line);border-radius:99px;color:var(--cyan);font-size:12px;font-weight:600;margin-bottom:18px;background:rgba(34,211,238,.06)}
+h1{font-size:clamp(34px,5vw,56px);letter-spacing:-1.5px}h1 span,.g{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}.lead{font-size:18px;color:var(--mut);margin:18px 0 28px;max-width:560px}
+.art{position:relative;aspect-ratio:1/.9;border-radius:24px;border:1px solid var(--line);background:radial-gradient(circle at 50% 40%,rgba(99,102,241,.22),transparent 65%),var(--panel);box-shadow:var(--glow);overflow:hidden}
+.art svg{width:100%;height:100%}.flow{stroke-dasharray:6 8;animation:fl 1.6s linear infinite}@keyframes fl{to{stroke-dashoffset:-28}}.pulse{animation:pu 2.8s ease-in-out infinite;transform-origin:center;transform-box:fill-box}@keyframes pu{50%{transform:scale(1.25);opacity:.7}}
+section{padding:56px 0}section h2{font-size:clamp(26px,3.4vw,36px);letter-spacing:-.8px;margin-bottom:10px}.sub{color:var(--mut);max-width:640px;margin-bottom:30px}
+.feat{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px}.feat .card h3{font-size:16px;margin:10px 0 6px}.ico{width:40px;height:40px;border-radius:12px;background:var(--grad);display:grid;place-items:center;font-size:19px}
+.preview{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}@media(max-width:900px){.preview{grid-template-columns:1fr}}.ev{border-top:1px solid var(--line);padding:9px 0;font-size:13px}.ev:first-of-type{border-top:0}
+.stack{display:flex;flex-wrap:wrap;gap:10px}.stack span{padding:8px 14px;border:1px solid var(--line);border-radius:11px;background:var(--panel);font-size:13px}
+footer{border-top:1px solid var(--line);padding:30px 0;color:var(--mut);font-size:13px}.cta{text-align:center;padding:56px 24px;border-radius:24px;background:linear-gradient(135deg,rgba(99,102,241,.3),rgba(34,211,238,.14)),var(--panel);border:1px solid var(--line)}
+</style></head><body>
+<header class="top"><div class="wrap bar"><a href="/" aria-label="DevGraph AI home"><picture><img class="logo" src="/brand/logo-horizontal-dark.svg" alt="DevGraph AI"></picture></a>
+<nav><a href="#how">How it works</a><a href="#features">Features</a><a href="#preview">Preview</a><a href="#stack">Stack</a><a class="btn primary sm" href="/app.html">Open the app</a></nav></div></header>
+<main>
+<div class="wrap hero"><div><span class="kicker">TraceNova · Graph Hacks 2026 · Track 01: Agents That Act on Connected Data</span>
+<h1>Incidents explained by <span>the graph</span>, not guessed by a chatbot.</h1>
+<p class="lead">DevGraph AI traverses your real service dependencies in FalkorDB, remembers earlier investigations, and shows exactly why it recommends each next step, with evidence you can inspect.</p>
+<div class="row"><a class="btn primary" href="/app.html">Start investigating</a><a class="btn" href="#how">See how decisions are traced</a></div></div>
+<div class="art" aria-hidden="true"><svg viewBox="0 0 500 450"><defs><linearGradient id="lg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#6366f1"/><stop offset=".6" stop-color="#8b5cf6"/><stop offset="1" stop-color="#22d3ee"/></linearGradient></defs>
+<g stroke="url(#lg)" stroke-width="2.2" fill="none" class="flow" opacity=".85"><path d="M250 80 L120 190"/><path d="M250 80 L380 190"/><path d="M120 190 L180 330"/><path d="M380 190 L320 330"/><path d="M120 190 L380 190"/><path d="M180 330 L320 330"/><path d="M250 80 L250 215"/></g>
+<g><circle cx="250" cy="80" r="26" fill="url(#lg)" class="pulse"/><circle cx="120" cy="190" r="20" fill="#0d1431" stroke="#6366f1" stroke-width="3"/><circle cx="380" cy="190" r="20" fill="#0d1431" stroke="#22d3ee" stroke-width="3"/><circle cx="250" cy="215" r="16" fill="#0d1431" stroke="#8b5cf6" stroke-width="3"/><circle cx="180" cy="330" r="22" fill="#0d1431" stroke="#34d399" stroke-width="3"/><circle cx="320" cy="330" r="22" fill="#0d1431" stroke="#fbbf24" stroke-width="3"/></g>
+<g font-family="system-ui" font-size="12" fill="#c7cbff" text-anchor="middle"><text x="250" y="45">service</text><text x="120" y="228">project</text><text x="380" y="228">incident</text><text x="180" y="372">developer</text><text x="320" y="372">task</text></g></svg></div></div>
+
+<section id="how"><div class="wrap"><h2>The graph decides what the agent does</h2><p class="sub">Every question is turned into graph tool calls. What those calls return decides which tools run next, what is flagged, and which action is proposed.</p>
+<div class="feat"><div class="card"><div class="ico">1</div><h3>Select tools from intent</h3><p class="mut">Impact, history, ownership and path questions run different traversals. Unneeded tools are skipped and the trace says so.</p></div>
+<div class="card"><div class="ico">2</div><h3>Traverse multiple hops</h3><p class="mut">Dependency chains, impacted projects, RELATED_TO incident history and developer ownership, all from stored relationships.</p></div>
+<div class="card"><div class="ico">3</div><h3>Separate fact from inference</h3><p class="mut">Each evidence item is labelled direct (a stored edge) or inferred (derived from edges). Conflicts and missing owners are reported, never hidden.</p></div>
+<div class="card"><div class="ico">4</div><h3>Act only with your approval</h3><p class="mut">The agent proposes a task with its evidence. Nothing is written until an authorized user confirms, and the outcome is linked back to the investigation.</p></div></div></div></section>
+
+<section id="features"><div class="wrap"><h2>Built for real investigations</h2><p class="sub">Every screen reads live data from your graph.</p>
+<div class="feat"><div class="card"><h3>Decision Trace</h3><p class="mut">Selected tools, readable query summaries, entities and relationships retrieved, and whether an LLM or the evidence-only fallback answered.</p></div>
+<div class="card"><h3>Persistent memory</h3><p class="mut">Investigations are stored in the graph per user, compared against the current graph on recall, and marked stale when facts change.</p></div>
+<div class="card"><h3>Interactive graph</h3><p class="mut">Search, filter, zoom, inspect nodes, and see the exact evidence path highlighted for an answer.</p></div>
+<div class="card"><h3>Incidents &amp; tasks</h3><p class="mut">Search, severity and status management, owners, resolutions, and tasks, protected by role-based access.</p></div>
+<div class="card"><h3>Honest AI status</h3><p class="mut">Works without an API key. When a model is configured, its answer is rejected if it cites evidence that does not exist.</p></div>
+<div class="card"><h3>Safe by default</h3><p class="mut">Parameterized queries, CSRF protection, rate limits, hashed passwords, and credentials that never reach the browser.</p></div></div></div></section>
+
+<section id="preview"><div class="wrap"><h2>What a decision looks like</h2><p class="sub">Layout preview with sample wording. In the app, every line comes from your graph.</p>
+<div class="preview"><div class="card"><h2>Decision Trace <span class="tag">preview</span></h2>
+<div class="ev"><span class="tag direct">direct</span><b>E1</b> checkout-service -[DEPENDS_ON]-&gt; payment-service</div>
+<div class="ev"><span class="tag inferred">inferred</span><b>E4</b> Project Web Storefront is affected: it USES checkout-service, which depends on payment-service</div>
+<div class="ev"><span class="tag bad">conflict</span>An incident is marked resolved but has no documented resolution</div>
+<div class="ev"><span class="tag warn">missing</span>No recorded owner for a downstream service</div>
+<div class="ev"><span class="tag">action</span>Proposed task (needs your confirmation), cites E7, E13</div></div>
+<div class="card"><h2>Answer source</h2><p class="mut">Evidence-only, or LLM-explained when configured. Always labelled, never faked.</p><div class="row"><span class="tag ok">graph-driven</span><span class="tag">user-isolated memory</span><span class="tag inferred">audit logged</span></div></div></div></div></section>
+
+<section id="stack"><div class="wrap"><h2>Technology</h2><p class="sub">A small, auditable stack.</p><div class="stack"><span>FalkorDB (Cypher)</span><span>Node.js 22</span><span>Express</span><span>vis-network</span><span>Any OpenAI-compatible LLM (optional)</span><span>node:test + jsdom</span></div></div></section>
+<div class="wrap" style="padding-bottom:56px"><div class="cta"><h2>See the connections. Understand the impact.</h2><p class="lead" style="margin:12px auto 24px">Sign in, ask what breaks, and inspect the evidence.</p><a class="btn primary" href="/app.html">Open the app</a></div></div>
+</main>
+<footer><div class="wrap row" style="justify-content:space-between"><span>DevGraph AI by TraceNova · built for the WeMakeDevs × FalkorDB Graph Hacks 2026</span><span><code>  Crafted with <span class="heart" aria-label="love">♥</span>
+      for developers</code></span></div></footer>
+</body></html>

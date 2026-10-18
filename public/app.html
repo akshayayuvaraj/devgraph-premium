@@ -1,0 +1,198 @@
+<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>DevGraph AI</title><link rel="icon" href="/brand/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.9/standalone/umd/vis-network.min.js"></script>
+<style>
+.shell{display:grid;grid-template-columns:240px minmax(0,1fr);min-height:100vh}.side{position:sticky;top:0;height:100vh;padding:18px 14px;border-right:1px solid var(--line);background:linear-gradient(180deg,var(--panel),var(--bg));display:flex;flex-direction:column;gap:14px}
+.side img{height:32px;align-self:flex-start}.side nav{display:flex;flex-direction:column;gap:4px}.side nav button{display:flex;gap:10px;align-items:center;text-align:left;background:transparent;border:1px solid transparent;color:var(--mut);padding:10px 12px;border-radius:11px;font:600 14px var(--font);cursor:pointer}
+.side nav button:hover{color:var(--ink);background:var(--panel2)}.side nav button[aria-current=page]{color:#fff;background:var(--grad);box-shadow:var(--glow)}.foot{margin-top:auto;display:grid;gap:8px}.content{padding:22px 28px;max-width:1280px;width:100%;margin:auto;display:grid;gap:16px;align-content:start}
+@media(max-width:860px){.shell{grid-template-columns:1fr}.side{position:static;height:auto;flex-direction:row;flex-wrap:wrap;align-items:center}.side nav{flex-direction:row;overflow-x:auto;width:100%}.foot{margin:0;display:flex;flex-wrap:wrap}.content{padding:14px}}
+.page-h{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.page-h h1{font-size:24px;letter-spacing:-.5px}
+.banner{padding:10px 14px;border:1px solid rgba(251,191,36,.4);background:rgba(251,191,36,.08);border-radius:12px;font-size:13px}
+.stat b{display:block;font-size:30px;background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}.item{border-top:1px solid var(--line);padding:10px 0;display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.item:first-of-type{border-top:0}
+#net,#net2{height:430px;border:1px solid var(--line);border-radius:12px;background:var(--bg2)}#net2{height:62vh;min-height:420px}.ans{white-space:pre-wrap;font:inherit;margin:8px 0 0}.chip{cursor:pointer;color:var(--cyan);font-weight:700;border-bottom:1px dotted var(--cyan)}
+.tabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line);margin:14px 0 10px}.tabs button{background:transparent;border:0;border-bottom:2px solid transparent;color:var(--mut);padding:8px 12px;font:600 13px var(--font);cursor:pointer}.tabs button[aria-selected=true]{color:var(--ink);border-color:var(--vio)}
+.ev{border-top:1px solid var(--line);padding:9px 6px;font-size:13px;border-radius:8px}.ev:first-of-type{border-top:0}.ev.hl{background:rgba(139,92,246,.18);outline:1px solid var(--vio)}details{margin:6px 0}summary{cursor:pointer;font-size:13px}
+.toasts{position:fixed;right:16px;bottom:16px;display:grid;gap:8px;z-index:30}.toast{padding:11px 16px;border-radius:12px;background:var(--panel2);border:1px solid var(--line);box-shadow:var(--glow);font-size:13px;max-width:340px}.toast.ok{border-color:var(--ok)}.toast.bad{border-color:var(--bad)}
+.ov{position:fixed;inset:0;background:rgba(3,6,18,.65);display:grid;place-items:center;z-index:20;padding:16px}.dlg{width:min(520px,100%);max-height:90vh;overflow:auto}
+.legend span{display:inline-flex;align-items:center;gap:5px;font-size:12px;color:var(--mut);margin-right:10px}.legend i{width:10px;height:10px;border-radius:50%;display:inline-block}
+</style></head><body>
+<div id="auth" class="card" style="max-width:400px;margin:8vh auto" hidden><img src="/brand/logo-horizontal-dark.svg" alt="DevGraph AI" style="height:34px;margin-bottom:14px"><h2 id="atitle">Sign in</h2>
+<form id="af"><label for="em">Email</label><input id="em" type="email" autocomplete="username" required style="width:100%"><label for="pw">Password (10+ characters)</label><input id="pw" type="password" autocomplete="current-password" minlength="10" required style="width:100%">
+<p><button class="btn primary" style="width:100%;justify-content:center">Continue</button></p><p id="aerr" class="err" role="alert"></p><p class="mut" id="ahint"></p><p class="mut"><a href="/">Back to the home page</a></p></form></div>
+
+<div id="app" class="shell" hidden>
+<aside class="side"><a href="/"><img src="/brand/logo-horizontal-dark.svg" alt="DevGraph AI"></a><nav id="nav" aria-label="Main"></nav>
+<div class="foot"><div class="mut"><span id="me"></span> <span class="tag" id="role"></span></div><div class="row"><button class="btn sm" id="theme" aria-label="Toggle light or dark theme">Theme</button><button class="btn sm" id="out">Sign out</button></div></div></aside>
+<main class="content"><div id="demo" class="banner" hidden></div>
+
+<section data-p="overview"><div class="page-h"><h1>Overview</h1><div class="row"><button class="btn primary sm" data-go="investigate">New investigation</button><button class="btn sm" data-go="incidents">Browse incidents</button><button class="btn sm" data-go="graph">Explore graph</button></div></div>
+<div class="g4" id="stats" style="margin-top:14px"></div>
+<div class="g2" style="margin-top:16px"><div class="card"><h2>Unresolved incidents</h2><div id="unres"></div></div><div class="card"><h2>Open tasks</h2><div id="otasks"></div></div>
+<div class="card"><h2>Most connected services</h2><div id="top"></div></div><div class="card"><h2>Longest dependency chains</h2><div id="chains"></div></div>
+<div class="card"><h2>Recent incidents</h2><div id="recent"></div></div><div class="card"><h2>Your recent investigations</h2><div id="rinv"></div></div></div></section>
+
+<section data-p="investigate" hidden><div class="page-h"><h1>Investigation workspace</h1></div>
+<div class="card" style="margin-top:14px"><form class="row" id="f"><input id="q" aria-label="Question" maxlength="500" placeholder="e.g. What breaks if payment-service fails, who has worked on it, and what happened before?"><button class="btn primary" id="go">Investigate</button></form>
+<div class="row" id="chips" style="margin-top:10px"></div><div id="status" class="mut" role="status"></div></div>
+<div class="g2" style="margin-top:16px"><div class="card"><h2>Answer</h2><div id="ans"><span class="mut">Ask a question. Every conclusion will cite evidence you can inspect.</span></div>
+<div id="dec" hidden><div class="tabs" role="tablist" id="tabs"></div>
+<div data-tp="evidence"></div><div data-tp="trace" hidden></div><div data-tp="memory" hidden></div><div data-tp="uncertainty" hidden></div><div data-tp="action" hidden></div></div></div>
+<div class="card"><h2>Evidence path in the graph</h2><div id="net"></div><div id="nd" class="mut" style="margin-top:8px"></div></div></div></section>
+
+<section data-p="graph" hidden><div class="page-h"><h1>Knowledge graph</h1><div class="row"><input id="gs" placeholder="Search nodes" aria-label="Search nodes" style="max-width:220px"><select id="gt" aria-label="Filter by type"><option value="">All types</option><option>Service</option><option>Project</option><option>Developer</option><option>Incident</option><option>Task</option></select><button class="btn sm" id="gfit">Fit</button><button class="btn sm" id="grst">Reset</button></div></div>
+<div class="card" style="margin-top:14px"><div class="legend" id="legend"></div><div id="net2"></div><div id="nd2" class="mut" style="margin-top:8px">Click a node to inspect its properties and relationships.</div></div></section>
+
+<section data-p="incidents" hidden><div class="page-h"><h1>Incidents</h1><button class="btn primary sm" id="newinc" hidden>New incident</button></div>
+<div class="card" style="margin-top:14px"><div class="row"><input id="is" placeholder="Search incidents or services" aria-label="Search incidents"><select id="isev" aria-label="Severity"><option value="">Any severity</option><option>critical</option><option>high</option><option>medium</option><option>low</option></select><select id="ist" aria-label="Status"><option value="">Any status</option><option>open</option><option>investigating</option><option>resolved</option></select></div><div id="ilist" style="margin-top:10px"></div></div></section>
+
+<section data-p="memory" hidden><div class="page-h"><h1>Memory &amp; history</h1></div><div class="card" style="margin-top:14px"><p class="mut">Stored in the graph and private to your account. Memories are compared with the current graph on recall and marked stale when facts change.</p><div id="mem"></div></div></section>
+
+<section data-p="settings" hidden><div class="page-h"><h1>Settings</h1></div><div class="g2" style="margin-top:14px"><div class="card"><h2>System status</h2><div id="st"></div><div class="row" style="margin-top:10px"><button class="btn sm" id="llmtest" hidden>Test LLM connection</button></div><div id="llmout" class="mut" role="status"></div></div>
+<div class="card"><h2>Change password</h2><form class="row" id="pf"><input id="pc" type="password" placeholder="Current" required autocomplete="current-password" aria-label="Current password"><input id="pn" type="password" placeholder="New (10+)" minlength="10" required autocomplete="new-password" aria-label="New password"><button class="btn sm">Change</button></form><p class="mut" id="pm"></p></div></div>
+<div id="adm" hidden class="g2" style="margin-top:16px"><div class="card"><h2>Users &amp; roles</h2><div id="ul"></div><form class="row" id="uf" style="margin-top:10px"><input id="ue" type="email" placeholder="email" required aria-label="New user email"><input id="up" type="password" placeholder="temp password (10+)" minlength="10" required aria-label="Temporary password"><select id="ur" aria-label="Role"><option>viewer</option><option>analyst</option><option>admin</option></select><button class="btn sm">Add user</button></form><p class="err" id="uerr"></p></div><div class="card"><h2>Audit log</h2><div id="al"></div></div></div></section>
+</main></div>
+
+<div class="ov" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="mt"><form class="card dlg" id="mform"><h2 id="mt"></h2><div id="mb"></div><p class="err" id="merr" role="alert"></p><div class="row" style="justify-content:flex-end;margin-top:14px"><button type="button" class="btn sm" id="mcancel">Cancel</button><button class="btn primary sm" id="mbtn">Save</button></div></form></div>
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<script>
+const H={'content-type':'application/json','x-requested-with':'devgraph'};
+const $=i=>document.getElementById(i),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+async function api(p,o={}){const r=await fetch(p,{...o,headers:H});if(!r.ok){if(r.status===401&&ME)boot();throw new Error((await r.json().catch(()=>({}))).error||('request failed ('+r.status+')'))}return r.status===204?null:r.json()}
+const post=(p,b,m='POST')=>api(p,{method:m,body:JSON.stringify(b)});
+const RANK={viewer:1,analyst:2,admin:3};let ME=null;const can=r=>RANK[ME?.role]>=RANK[r];
+const COL={Service:'#6366f1',Project:'#22d3ee',Developer:'#fbbf24',Incident:'#fb7185',Task:'#34d399'};
+const sk=n=>Array.from({length:n},()=>'<div class="skel"></div>').join('');const empty=t=>`<span class="mut">${t}</span>`;
+const sev=s=>`<span class="tag ${esc(s)}">${esc(s)}</span>`;
+function toast(m,k=''){const t=document.createElement('div');t.className='toast '+k;t.textContent=m;$('toasts').appendChild(t);setTimeout(()=>t.remove(),k==='bad'?7000:4000)}
+function modal(title,html,{ok='Save',onSubmit}){$('mt').textContent=title;$('mb').innerHTML=html;$('merr').textContent='';$('mbtn').textContent=ok;$('modal').hidden=false;modal.fn=onSubmit;(document.querySelector('#mb input,#mb select,#mb textarea')||$('mbtn')).focus()}
+const closeModal=()=>{$('modal').hidden=true};$('mcancel').onclick=closeModal;$('modal').onclick=e=>{if(e.target.id==='modal')closeModal()};document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
+$('mform').onsubmit=async e=>{e.preventDefault();$('mbtn').disabled=true;try{await modal.fn(new FormData($('mform')));closeModal()}catch(err){$('merr').textContent=err.message}$('mbtn').disabled=false};
+function theme(t){document.documentElement.dataset.theme=t;try{localStorage.setItem('dg-theme',t)}catch{}}
+$('theme').onclick=()=>{theme(document.documentElement.dataset.theme==='dark'?'light':'dark');gInv.restyle();gFull.restyle()};
+try{const t=localStorage.getItem('dg-theme');if(t)document.documentElement.dataset.theme=t}catch{}
+
+/* ---------- graph component (real FalkorDB nodes/edges) ---------- */
+function makeGraph(el,detail){let nodes,edges,net,loaded=false;
+ const fc=()=>document.documentElement.dataset.theme==='dark'?'#e8ecff':'#0b1230';
+ async function load(force){if(loaded&&!force)return;el.innerHTML=sk(6);try{const g=await api('/api/graph');el.innerHTML='';
+  if(!g.nodes.length){el.innerHTML=empty('<p style="padding:14px">The graph is empty. Load your services, projects, developers and incidents into FalkorDB (see README).</p>');return}
+  nodes=new vis.DataSet(g.nodes.map(n=>({id:n.id,label:n.id,type:n.label,color:{background:COL[n.label]||'#888',border:COL[n.label]||'#888'},font:{color:fc(),size:12},shape:'dot',size:15})));
+  edges=new vis.DataSet(g.edges.map((e,i)=>({id:i,from:e.from,to:e.to,label:e.label,arrows:'to',font:{size:9,color:'#8f9bc9',strokeWidth:0,align:'middle'},color:{color:'#44508a'},smooth:{type:'dynamic'}})));
+  net=new vis.Network(el,{nodes,edges},{physics:{stabilization:true,barnesHut:{springLength:140}},interaction:{hover:true}});loaded=true;
+  net.on('click',async p=>{if(!p.nodes.length)return;try{const d=await api('/api/graph/nodes/'+encodeURIComponent(p.nodes[0]));
+   detail.innerHTML=`<b>${esc(d.id)}</b> <span class="tag">${esc(d.label)}</span>${d.title?' '+esc(d.title):''}${d.severity?' '+sev(d.severity):''}${d.resolution?'<br>Resolution: '+esc(d.resolution):''}<br>`+d.relations.map(r=>r.outgoing?`-[${esc(r.rel)}]-&gt; ${esc(r.other)}`:`${esc(r.other)} -[${esc(r.rel)}]-&gt;`).join('<br>')}catch(e){detail.textContent=e.message}})
+ }catch(e){el.innerHTML=`<p class="err" style="padding:12px">Graph unavailable: ${esc(e.message)}</p>`}}
+ return{load,
+  highlight(ids){if(!nodes)return;const s=new Set(ids);nodes.update(nodes.get().map(n=>({id:n.id,hidden:false,opacity:!ids.length||s.has(n.id)?1:.2,size:s.has(n.id)?24:15,borderWidth:s.has(n.id)?4:1})));
+   edges.update(edges.get().map(e=>{const on=s.has(e.from)&&s.has(e.to);return{id:e.id,color:{color:on?'#22d3ee':'#2a3568'},width:on?3.5:1}}));if(ids.length)net.fit({nodes:ids,animation:true})},
+  filter(t){if(!nodes)return;nodes.update(nodes.get().map(n=>({id:n.id,hidden:!!t&&n.type!==t})))},
+  search(term){if(!nodes||!term)return;const m=nodes.get().find(n=>n.id.toLowerCase().includes(term.toLowerCase()));if(m){net.selectNodes([m.id]);net.focus(m.id,{scale:1.3,animation:true})}},
+  fit(){net&&net.fit({animation:true})},reset(){if(!nodes)return;this.highlight([]);this.filter('');net.fit({animation:true})},
+  restyle(){nodes&&nodes.update(nodes.get().map(n=>({id:n.id,font:{color:fc(),size:12}})))}}}
+const gInv=makeGraph($('net'),$('nd')),gFull=makeGraph($('net2'),$('nd2'));
+$('legend').innerHTML=Object.entries(COL).map(([k,c])=>`<span><i style="background:${c}"></i>${k}</span>`).join('');
+$('gs').oninput=e=>gFull.search(e.target.value);$('gt').onchange=e=>gFull.filter(e.target.value);$('gfit').onclick=()=>gFull.fit();$('grst').onclick=()=>{$('gs').value='';$('gt').value='';gFull.reset()};
+
+/* ---------- navigation ---------- */
+const PAGES=[['overview','Overview'],['investigate','Investigate'],['graph','Graph'],['incidents','Incidents'],['memory','Memory'],['settings','Settings']];
+$('nav').innerHTML=PAGES.map(([k,l])=>`<button data-go="${k}">${l}</button>`).join('');
+document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g)go(g.dataset.go)});
+function go(p){document.querySelectorAll('[data-p]').forEach(s=>s.hidden=s.dataset.p!==p);document.querySelectorAll('#nav button').forEach(b=>b.dataset.go===p?b.setAttribute('aria-current','page'):b.removeAttribute('aria-current'));
+ ({overview:loadOverview,investigate:()=>{gInv.load();loadChips()},graph:()=>gFull.load(),incidents:loadIncidents,memory:loadMem,settings:loadSettings})[p]()}
+
+/* ---------- overview ---------- */
+const incRow=i=>`<div class="item"><div>${sev(i.severity)}<span class="tag">${esc(i.status)}</span><b>${esc(i.id)}</b> ${esc(i.title)}<br><span class="mut">${esc(i.service)} · ${esc(i.date)}</span></div></div>`;
+async function loadOverview(){$('stats').innerHTML=sk(2);try{const o=await api('/api/overview');
+ $('demo').hidden=!o.demoNodes;$('demo').textContent=o.demoNodes?`This graph ("${o.graph}") contains ${o.demoNodes} clearly labelled DEMO records (sample scenario). Replace them with your own data for real use.`:'';
+ $('stats').innerHTML=[['Nodes',o.nodes],['Relationships',o.edges],['Services',o.components],['Your investigations',o.investigations]].map(([l,v])=>`<div class="card stat"><b>${v}</b>${l}</div>`).join('');
+ $('unres').innerHTML=o.unresolved.map(incRow).join('')||empty('No unresolved incidents.');$('recent').innerHTML=o.recentIncidents.map(incRow).join('')||empty('No incidents recorded.');
+ $('otasks').innerHTML=o.openTasks.map(t=>`<div class="item"><div>${esc(t.title)}<br><span class="mut">${esc(t.incident||'-')} · ${esc(t.developer||'unassigned')}</span></div><span class="tag">${esc(t.status)}</span></div>`).join('')||empty('No open tasks.');
+ $('top').innerHTML=o.topServices.map(s=>`<div class="item"><span>${esc(s.service)}</span><span class="tag">${s.connections} links</span></div>`).join('')||empty('No services yet.');
+ $('chains').innerHTML=o.criticalChains.map(c=>`<div class="item"><code>${c.map(esc).join(' → ')}</code></div>`).join('')||empty('No multi-hop chains.');
+ $('rinv').innerHTML=o.recentInvestigations.map(r=>`<div class="item"><span>${esc(r.question)}</span><span class="mut">${new Date(+r.ts).toLocaleDateString()}</span></div>`).join('')||empty('None yet. Start an investigation.')}
+ catch(e){$('stats').innerHTML=`<p class="err" role="alert">${esc(e.message)}. Is FalkorDB reachable? Check Settings and the server log.</p>`}}
+
+/* ---------- investigation ---------- */
+const TABS=[['evidence','Evidence'],['trace','Decision trace'],['memory','Memory'],['uncertainty','Uncertainty'],['action','Action']];
+$('tabs').innerHTML=TABS.map(([k,l],i)=>`<button role="tab" data-tab="${k}" aria-selected="${i===0}">${l}</button>`).join('');
+$('tabs').onclick=e=>{const k=e.target.dataset.tab;if(k)showTab(k)};
+function showTab(k){document.querySelectorAll('#tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===k));document.querySelectorAll('[data-tp]').forEach(p=>p.hidden=p.dataset.tp!==k)}
+async function loadChips(){try{const s=await api('/api/services');$('chips').innerHTML=s.length?s.slice(0,4).map(x=>`<button type="button" class="btn sm">${esc('What breaks if '+x+' fails, who has worked on it, and what happened before?')}</button>`).join(''):empty('The graph has no services yet. Load your data first (see README).')}catch{$('chips').innerHTML=''}}
+$('chips').onclick=e=>{if(e.target.tagName==='BUTTON'){$('q').value=e.target.textContent;$('f').requestSubmit()}};
+const cite=t=>esc(t).replace(/\[((?:E\d+(?:,\s*)?)+)\]/g,(m,ids)=>'['+ids.split(/,\s*/).map(i=>`<span class="chip" tabindex="0" data-ev="${i}">${i}</span>`).join(', ')+']');
+document.addEventListener('click',e=>{const c=e.target.closest('[data-ev]');if(c){showTab('evidence');document.querySelectorAll('.ev.hl').forEach(x=>x.classList.remove('hl'));const t=$('ev-'+c.dataset.ev);if(t){t.classList.add('hl');t.scrollIntoView?.({block:'nearest'})}}});
+let CUR=null;
+function renderResult(r,stored){CUR=r;const D=r.decision,ls=D.llm;
+ $('ans').innerHTML=`<div class="row"><span class="tag ${r.mode==='llm'?'ok':'inferred'}">${esc(r.mode)}</span>${D.priority?`<span class="tag ${esc(D.priority.label)}">priority: ${esc(D.priority.label)}</span>`:''}${stored?'<span class="tag">stored investigation</span>':''}</div>
+ <p class="mut">${ls.usedForExplanation?'Explained by the configured LLM from the retrieved evidence.':'Evidence-only answer'+(ls.reason?` (${esc(ls.reason)})`:'')+'. No model was used to write this text.'}</p><pre class="ans">${cite(r.answer)}</pre>`;
+ $('dec').hidden=!D.evidence.length&&!D.tools.length;
+ const P=k=>document.querySelector(`[data-tp="${k}"]`);
+ P('evidence').innerHTML=D.evidence.map(e=>`<div class="ev" id="ev-${e.id}"><span class="tag ${e.type}">${e.type}</span><b>${e.id}</b> ${esc(e.claim)}<br><span class="mut">via ${esc(e.tool)}${e.relationships.length?' · '+e.relationships.map(esc).join('; '):''}</span></div>`).join('')||empty('No evidence retrieved.');
+ const it=Object.entries(D.intent||{}).filter(([,v])=>v).map(([k])=>k).join(', ')||'none';
+ P('trace').innerHTML=`<p class="mut">Question: ${esc(D.question)}<br>Detected intent: ${esc(it)}. Tools are chosen from the intent and from what earlier graph results contained.</p>`+D.tools.map((t,i)=>`<details ${i<3?'open':''}><summary><b>${i+1}. ${esc(t.step)}</b> · ${t.rows} row(s)</summary><div class="mut">${esc(t.reason)}<br><code>${esc(t.query)}</code><br>${t.entities?.length?'Entities: '+t.entities.map(esc).join(', '):''}</div></details>`).join('');
+ const M=D.memory;P('memory').innerHTML=(M.read.length?M.read.map(m=>`<div class="item"><div>${esc(m.question)}<br><span class="mut">${new Date(+m.ts).toLocaleString()} · ${esc(m.note)}</span></div>${m.stale?'<span class="tag warn">stale</span>':m.influenced?'<span class="tag ok">influenced answer</span>':''}</div>`).join(''):empty('No earlier investigation of these services was recalled.'))+(M.delta.length?`<p><b>Changes since last time</b><br>${M.delta.map(esc).join('<br>')}</p>`:'')+(M.write?`<p class="mut">Saved as investigation ${esc(M.write.id)}${M.write.supersedes?.length?'; marked '+M.write.supersedes.length+' older investigation(s) stale':''}.</p>`:'');
+ const U=D.uncertainty;P('uncertainty').innerHTML=(U.contradictions.map(c=>`<div class="ev"><span class="tag bad">conflict</span>${esc(c.text)} ${c.evidence.map(x=>`<span class="chip" data-ev="${x}">${x}</span>`).join(' ')}</div>`).join('')+U.gaps.map(g=>`<div class="ev"><span class="tag warn">missing</span>${esc(g)}</div>`).join(''))||empty('No conflicts or gaps detected.');
+ renderAction(r,stored);showTab('evidence');gInv.highlight(r.highlight||[])}
+async function renderAction(r,stored){const A=r.proposedAction,box=document.querySelector('[data-tp="action"]');
+ let h=D_rec(r);if(A){h+=`<div class="card" style="margin-top:10px"><b>Proposed action</b>: create task<br>${esc(A.title)}<br><span class="mut">Incident ${esc(A.incidentId)} · assignee ${esc(A.developer||'unassigned')} · evidence ${A.evidence.map(x=>`<span class="chip" data-ev="${x}">${x}</span>`).join(', ')}</span><div class="row" style="margin-top:10px"><button class="btn primary sm" id="actgo" ${can('analyst')&&r.id?'':'disabled'}>Review and confirm</button>${can('analyst')?'':'<span class="mut">Requires the analyst role.</span>'}</div><div id="actout" role="status"></div></div>`}
+ else if(!stored)h+='<p class="mut">No write action is proposed for this question.</p>';
+ box.innerHTML=h+'<div id="outcome"></div>';if(r.id)showOutcome(r.id);
+ const b=$('actgo');if(b)b.onclick=()=>modal('Confirm action',`<p>The agent proposes creating this task. Nothing has been written yet.</p><p><b>${esc(A.title)}</b></p><p class="mut">Incident ${esc(A.incidentId)} · assignee ${esc(A.developer||'unassigned')}<br>Evidence: ${A.evidence.map(id=>esc((r.decision.evidence.find(e=>e.id===id)||{}).claim||id)).join('<br>')}</p>`,{ok:'Create task',onSubmit:async()=>{
+  try{await post('/api/tasks',{incidentId:A.incidentId,title:A.title,developer:A.developer,investigationId:r.id,confirm:true});toast('Task created and linked to this investigation','ok');b.disabled=true;$('actout').innerHTML='<span class="tag ok">created</span>'}
+  catch(e){$('actout').innerHTML=`<span class="tag bad">failed</span> ${esc(e.message)}. Nothing was created.`;throw e}
+  showOutcome(r.id)}})}
+const D_rec=r=>r.decision.recommendation?`<p><b>Recommendation</b><br>${esc(r.decision.recommendation.text)}</p>`:'';
+async function showOutcome(id){try{const inv=await api('/api/investigations/'+id);$('outcome').innerHTML=`<p><b>Recorded outcome</b> <span class="mut">(read back from the graph)</span><br>${inv.tasks.length?inv.tasks.map(t=>`${esc(t.title)} · ${esc(t.developer||'unassigned')} · <span class="tag">${esc(t.status)}</span>`).join('<br>'):'<span class="mut">No task has been created from this investigation.</span>'}</p>`}catch{}}
+$('f').onsubmit=async e=>{e.preventDefault();$('go').disabled=true;$('status').textContent='Querying the graph…';$('ans').innerHTML=sk(4);
+ try{await gInv.load();renderResult(await post('/api/agent/query',{question:$('q').value}),false);$('status').textContent=''}
+ catch(err){$('ans').innerHTML='';$('status').innerHTML=`<span class="err" role="alert">${esc(err.message)}</span>`}$('go').disabled=false};
+
+/* ---------- incidents & tasks ---------- */
+let SVC=[],DEVS=[];
+async function ensureLists(){if(!SVC.length){SVC=await api('/api/services');DEVS=await api('/api/developers')}}
+async function loadIncidents(){$('ilist').innerHTML=sk(4);try{await ensureLists();$('newinc').hidden=!can('analyst');
+ const l=await api('/api/incidents?'+new URLSearchParams({search:$('is').value,severity:$('isev').value,status:$('ist').value}));
+ $('ilist').innerHTML=l.map(i=>`<div class="item"><div>${sev(i.severity)}<span class="tag">${esc(i.status)}</span><b>${esc(i.id)}</b> ${esc(i.title)}<br><span class="mut">service ${esc(i.service)} · owners ${esc(i.owners.join(', ')||'none recorded')} · projects ${esc(i.projects.join(', ')||'-')} · resolved by ${esc(i.resolvers.join(', ')||'-')} · ${esc(i.date)}</span>
+  <br>${i.resolution?`<span class="mut">Resolution: ${esc(i.resolution)}</span>`:'<span class="tag warn">no documented resolution</span>'}<div id="t-${esc(i.id)}" class="mut"></div></div>
+  <div class="row"><button class="btn sm" data-act="tasks" data-id="${esc(i.id)}">Tasks</button><button class="btn sm" data-act="ask" data-svc="${esc(i.service)}">Investigate</button>${can('analyst')?`<button class="btn sm" data-act="edit" data-id="${esc(i.id)}" data-sev="${esc(i.severity)}" data-st="${esc(i.status)}" data-res="${esc(i.resolution||'')}">Edit</button><button class="btn sm" data-act="task" data-id="${esc(i.id)}">+ Task</button>`:''}</div></div>`).join('')||empty('No incidents match your filters.')}
+ catch(e){$('ilist').innerHTML=`<span class="err" role="alert">${esc(e.message)}</span>`}}
+['is','isev','ist'].forEach(i=>$(i).addEventListener('input',()=>loadIncidents()));
+const opts=(a,sel)=>a.map(x=>`<option ${x===sel?'selected':''}>${esc(x)}</option>`).join('');
+async function showTasks(id){const t=await api(`/api/incidents/${id}/tasks`);$('t-'+id).innerHTML=t.map(x=>`• ${esc(x.title)} (${esc(x.developer||'unassigned')}) `+(can('analyst')?`<select data-task="${esc(x.id)}" aria-label="Task status">${opts(['open','in_progress','done'],x.status)}</select>`:`<span class="tag">${esc(x.status)}</span>`)).join('<br>')||'No tasks.'}
+$('ilist').onchange=async e=>{const id=e.target.dataset.task;if(!id)return;try{await post('/api/tasks/'+id,{status:e.target.value,confirm:true},'PATCH');toast('Task updated','ok')}catch(err){toast(err.message,'bad')}};
+$('ilist').onclick=async e=>{const b=e.target.closest('[data-act]');if(!b)return;const id=b.dataset.id,a=b.dataset.act;try{
+ if(a==='ask'){go('investigate');$('q').value=`What breaks if ${b.dataset.svc} fails, who has worked on it, and what happened before?`;$('f').requestSubmit()}
+ if(a==='tasks')await showTasks(id);
+ if(a==='edit')modal('Edit '+id,`<label for="m-sev">Severity</label><select id="m-sev" name="severity">${opts(['low','medium','high','critical'],b.dataset.sev)}</select><label for="m-st">Status</label><select id="m-st" name="status">${opts(['open','investigating','resolved'],b.dataset.st)}</select><label for="m-res">Documented resolution</label><textarea id="m-res" name="resolution" rows="3" maxlength="500">${esc(b.dataset.res)}</textarea><p class="mut">Saving updates this incident and is recorded in the audit log.</p>`,{onSubmit:async f=>{await post('/api/incidents/'+id,{severity:f.get('severity'),status:f.get('status'),resolution:f.get('resolution'),confirm:true},'PATCH');toast(id+' updated','ok');loadIncidents()}});
+ if(a==='task')modal('New task for '+id,`<label for="m-t">Title</label><input id="m-t" name="title" required minlength="3" maxlength="160" style="width:100%"><label for="m-d">Assign to</label><select id="m-d" name="developer"><option value="">Unassigned</option>${opts(DEVS)}</select>`,{ok:'Create task',onSubmit:async f=>{await post('/api/tasks',{incidentId:id,title:f.get('title'),developer:f.get('developer'),confirm:true});toast('Task created','ok');await showTasks(id)}});
+}catch(err){toast(err.message,'bad')}};
+$('newinc').onclick=()=>modal('New incident',`<label for="n-t">Title</label><input id="n-t" name="title" required minlength="3" maxlength="120" style="width:100%"><label for="n-sv">Severity</label><select id="n-sv" name="severity">${opts(['low','medium','high','critical'],'high')}</select><label for="n-s">Affected service</label><select id="n-s" name="service">${opts(SVC)}</select>`,{ok:'Create incident',onSubmit:async f=>{await post('/api/incidents',{title:f.get('title'),severity:f.get('severity'),service:f.get('service'),confirm:true});toast('Incident created','ok');gInv.load(true);loadIncidents()}});
+
+/* ---------- memory ---------- */
+async function loadMem(){$('mem').innerHTML=sk(3);try{const m=await api('/api/memories');
+ $('mem').innerHTML=m.length?m.map(x=>`<div class="item"><div><b>${esc(x.question)}</b><br><span class="mut">${new Date(+x.ts).toLocaleString()} · primary ${esc(x.primary)} · outcome: ${esc(x.outcome)}</span>${x.stale?' <span class="tag warn">stale: graph changed since</span>':''}${x.lesson?`<br><span class="mut">Lesson: ${esc(x.lesson)}</span>`:''}</div>
+  <div class="row"><button class="btn sm" data-open="${esc(x.id)}">Open</button><button class="btn sm danger" data-del="${esc(x.id)}">Delete</button></div></div>`).join(''):empty('No saved investigations yet. They appear here after you investigate.')}catch(e){$('mem').innerHTML=`<span class="err">${esc(e.message)}</span>`}}
+$('mem').onclick=async e=>{const o=e.target.dataset.open,d=e.target.dataset.del;
+ if(o){try{const inv=await api('/api/investigations/'+o);if(!inv.decision)return toast('This record has no stored decision trace','bad');go('investigate');
+  renderResult({id:inv.id,mode:inv.decision.llm?.usedForExplanation?'llm':'evidence-only',answer:inv.summary,decision:inv.decision,highlight:[],proposedAction:null},true)}catch(err){toast(err.message,'bad')}}
+ if(d)modal('Delete this memory?','<p>This removes the stored investigation. Tasks already created from it are kept.</p>',{ok:'Delete',onSubmit:async()=>{await api('/api/memories/'+d,{method:'DELETE'});toast('Memory deleted','ok');loadMem()}})};
+
+/* ---------- settings ---------- */
+async function loadSettings(){$('st').innerHTML=sk(4);try{const s=await api('/api/settings/status');$('st').innerHTML=Object.entries(s).map(([k,v])=>`<div class="item"><span>${esc(k)}</span><b>${esc(v)}</b></div>`).join('');
+ $('llmtest').hidden=!can('admin');$('adm').hidden=!can('admin');
+ if(can('admin')){$('ul').innerHTML=(await api('/api/admin/users')).map(x=>`<div class="item"><span>${esc(x.email)} <span class="tag">${esc(x.role)}</span></span><button class="btn sm" data-reset="${esc(x.id)}">Reset password</button></div>`).join('');
+  $('al').innerHTML=(await api('/api/audit')).map(a=>`<div class="item"><span>${esc(a.action)} <span class="mut">${esc(a.target)}</span></span><span class="mut">${new Date(+a.ts).toLocaleString()}</span></div>`).join('')||empty('No entries.')}}catch(e){$('st').innerHTML=`<span class="err">${esc(e.message)}</span>`}}
+$('llmtest').onclick=async()=>{$('llmout').textContent='Testing…';try{const r=await post('/api/settings/llm-check',{});$('llmout').innerHTML=r.ok?`<span class="tag ok">reachable</span> ${r.ms} ms`:`<span class="tag bad">${r.configured?'not working':'not configured'}</span> ${esc(r.detail)}`}catch(e){$('llmout').textContent=e.message}};
+$('ul').onclick=e=>{const id=e.target.dataset.reset;if(id)modal('Reset password',`<label for="r-p">Temporary password (10+ characters)</label><input id="r-p" name="p" type="password" minlength="10" required style="width:100%"><p class="mut">The user will be signed out everywhere.</p>`,{ok:'Reset',onSubmit:async f=>{await post(`/api/admin/users/${id}/password`,{password:f.get('p'),confirm:true});toast('Password reset','ok')}})};
+$('uf').onsubmit=async e=>{e.preventDefault();$('uerr').textContent='';try{await post('/api/admin/users',{email:$('ue').value,password:$('up').value,role:$('ur').value});e.target.reset();toast('User created','ok');loadSettings()}catch(err){$('uerr').textContent=err.message}};
+$('pf').onsubmit=async e=>{e.preventDefault();try{await post('/api/auth/password',{current:$('pc').value,next:$('pn').value});location.reload()}catch(err){$('pm').textContent=err.message}};
+
+/* ---------- auth ---------- */
+async function boot(){const s=await fetch('/api/auth/status').then(r=>r.json());
+ if(s.user){ME=s.user;$('auth').hidden=true;$('app').hidden=false;$('me').textContent=s.user.email;$('role').textContent=s.user.role;go('overview');return}
+ ME=null;$('app').hidden=true;$('auth').hidden=false;window.MODE=s.setupRequired?'register':'login';
+ $('atitle').textContent=s.setupRequired?'Create the first account (admin)':'Sign in';$('ahint').textContent=s.setupRequired?'First-time setup. No default admin exists.':(s.signupOpen?'':'Ask an admin for an account.')}
+$('af').onsubmit=async e=>{e.preventDefault();$('aerr').textContent='';try{await post('/api/auth/'+window.MODE,{email:$('em').value,password:$('pw').value});$('pw').value='';boot()}catch(err){$('aerr').textContent=err.message}};
+$('out').onclick=async()=>{await post('/api/auth/logout',{});location.href='/'};
+boot();
+</script></body></html>
