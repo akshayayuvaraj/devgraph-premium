@@ -2,9 +2,13 @@
 import { q } from './db.js';
 
 // Allowlisted, parameterized graph tools.
-// These functions only read the graph, except for the memory functions below.
+// Graph data is shared across authenticated users.
+// Investigation memory is shared for reading.
+// The owner field remains for attribution and owner-only deletion.
 
-const unique = (values) => [...new Set(values.filter(Boolean))];
+const unique = (values) => [...new Set(
+  (Array.isArray(values) ? values : []).filter(Boolean)
+)];
 
 export async function listServices() {
   const rows = await q(
@@ -26,7 +30,6 @@ export async function findServiceDependencies(service) {
     };
   }
 
-  // Services that depend on the requested service.
   const chainRows = await q(
     `MATCH p=(d:Service)-[:DEPENDS_ON*1..4]->(f:Service {id:$s})
      RETURN [x IN nodes(p) | x.id] AS chain
@@ -40,7 +43,6 @@ export async function findServiceDependencies(service) {
 
   const downstream = unique(chains.map((chain) => chain[0]));
 
-  // Projects using the requested service or a dependent service.
   const projectRows = await q(
     `MATCH (p:Project)-[:USES]->(s:Service)
      WHERE s.id IN $names
@@ -49,7 +51,6 @@ export async function findServiceDependencies(service) {
     { names: unique([service, ...downstream]) }
   );
 
-  // Services that the requested service depends on.
   const upstreamRows = await q(
     `MATCH p=(f:Service {id:$s})-[:DEPENDS_ON*1..4]->(u:Service)
      RETURN DISTINCT u.id AS service
@@ -68,7 +69,7 @@ export async function findServiceDependencies(service) {
 }
 
 export async function findRelatedIncidents(services) {
-  const names = unique(Array.isArray(services) ? services : []);
+  const names = unique(services);
 
   if (names.length === 0) {
     return {
@@ -78,7 +79,6 @@ export async function findRelatedIncidents(services) {
     };
   }
 
-  // Incidents directly affecting the selected services.
   const direct = await q(
     `MATCH (i:Incident)-[:AFFECTS]->(s:Service)
      WHERE s.id IN $names
@@ -99,7 +99,6 @@ export async function findRelatedIncidents(services) {
 
   const directIds = unique(direct.map((row) => row.id));
 
-  // Historical incidents connected to the direct incidents.
   const linked = await q(
     `MATCH (i:Incident)-[:AFFECTS]->(s:Service)
      WHERE s.id IN $names
@@ -130,7 +129,7 @@ export async function findRelatedIncidents(services) {
 }
 
 export async function findDeveloperExpertise(services) {
-  const names = unique(Array.isArray(services) ? services : []);
+  const names = unique(services);
 
   if (names.length === 0) {
     return {
@@ -172,7 +171,7 @@ export async function findDeveloperExpertise(services) {
 }
 
 export async function ownersOf(services) {
-  const names = unique(Array.isArray(services) ? services : []);
+  const names = unique(services);
 
   if (names.length === 0) {
     return {};
@@ -240,19 +239,27 @@ export async function traceRelationshipPath(a, b) {
 }
 
 // ---------------------------------------------------------------------
-// Investigation memory
-// All memory reads, updates, and deletes are scoped to the owner.
+// Shared investigation memory
+//
+// All authenticated users can read relevant investigations and traces.
+// owner is retained for attribution and creator-only deletion.
+// Authentication and authorization must be enforced by the API routes.
 // ---------------------------------------------------------------------
 
 export const recallMemory = (owner, names) => {
-  const serviceNames = unique(Array.isArray(names) ? names : []);
+  // owner is required as a signal that this request has an authenticated user.
+  if (!owner) {
+    return Promise.resolve([]);
+  }
 
-  if (!owner || serviceNames.length === 0) {
+  const serviceNames = unique(names);
+
+  if (serviceNames.length === 0) {
     return Promise.resolve([]);
   }
 
   return q(
-    `MATCH (m:Investigation {owner:$o})-[:ABOUT]->(s:Service)
+    `MATCH (m:Investigation)-[:ABOUT]->(s:Service)
      WHERE s.id IN $names
      RETURN DISTINCT
        m.id AS id,
@@ -267,13 +274,15 @@ export const recallMemory = (owner, names) => {
        coalesce(m.outcome, 'none') AS outcome
      ORDER BY m.ts DESC
      LIMIT 5`,
-    { o: owner, names: serviceNames }
+    { names: serviceNames }
   );
 };
 
 export async function saveMemory(owner, m) {
   if (!owner || !m?.id || !m?.question) {
-    throw new Error('saveMemory requires an owner, memory ID, and question.');
+    throw new Error(
+      'saveMemory requires an authenticated owner, memory ID, and question.'
+    );
   }
 
   await q(
@@ -308,19 +317,27 @@ export async function saveMemory(owner, m) {
     }
   );
 
-  for (const service of unique(m.services || [])) {
+  for (const service of unique(m.services)) {
     await q(
       `MATCH (m:Investigation {id:$id, owner:$o}),
              (s:Service {id:$s})
        MERGE (m)-[:ABOUT]->(s)`,
-      { id: m.id, o: owner, s: service }
+      {
+        id: m.id,
+        o: owner,
+        s: service,
+      }
     );
   }
 }
 
-export const supersede = (owner, id, primary, snapshot) =>
-  q(
-    `MATCH (old:Investigation {owner:$o, primary:$p})
+export const supersede = (owner, id, primary, snapshot) => {
+  if (!owner || !id) {
+    return Promise.resolve([]);
+  }
+
+  return q(
+    `MATCH (old:Investigation {primary:$p})
      WHERE old.id <> $id
        AND coalesce(old.stale, false) = false
        AND old.snapshot <> $snap
@@ -328,8 +345,14 @@ export const supersede = (owner, id, primary, snapshot) =>
      SET old.stale = true
      MERGE (n)-[:SUPERSEDES]->(old)
      RETURN old.id AS id`,
-    { o: owner, p: primary, id, snap: snapshot }
+    {
+      o: owner,
+      p: primary,
+      id,
+      snap: snapshot,
+    }
   ).then((rows) => rows.map((row) => row.id));
+};
 
 export const listMemories = (owner) => {
   if (!owner) {
@@ -337,7 +360,7 @@ export const listMemories = (owner) => {
   }
 
   return q(
-    `MATCH (m:Investigation {owner:$o})
+    `MATCH (m:Investigation)
      RETURN
        m.id AS id,
        m.question AS question,
@@ -346,20 +369,23 @@ export const listMemories = (owner) => {
        m.primary AS primary,
        coalesce(m.stale, false) AS stale,
        coalesce(m.outcome, 'none') AS outcome,
-       m.lesson AS lesson
+       m.lesson AS lesson,
+       m.owner AS owner
      ORDER BY m.ts DESC
-     LIMIT 50`,
-    { o: owner }
+     LIMIT 50`
   );
 };
 
+// Shared read does not imply shared delete.
+// Only the creator can delete their investigation.
 export const deleteMemory = (owner, id) => {
   if (!owner || !id) {
     return Promise.resolve([]);
   }
 
   return q(
-    'MATCH (m:Investigation {id:$id, owner:$o}) DETACH DELETE m',
+    `MATCH (m:Investigation {id:$id, owner:$o})
+     DETACH DELETE m`,
     { id, o: owner }
   );
 };
@@ -370,7 +396,7 @@ export async function getInvestigation(owner, id) {
   }
 
   const rows = await q(
-    `MATCH (m:Investigation {id:$id, owner:$o})
+    `MATCH (m:Investigation {id:$id})
      RETURN
        m.id AS id,
        m.question AS question,
@@ -379,8 +405,9 @@ export async function getInvestigation(owner, id) {
        m.decision AS decision,
        coalesce(m.stale, false) AS stale,
        coalesce(m.outcome, 'none') AS outcome,
-       m.recommendation AS recommendation`,
-    { id, o: owner }
+       m.recommendation AS recommendation,
+       m.owner AS owner`,
+    { id }
   );
 
   if (rows.length === 0) {
@@ -388,7 +415,7 @@ export async function getInvestigation(owner, id) {
   }
 
   const taskRows = await q(
-    `MATCH (t:Task)-[:FROM_INVESTIGATION]->(m:Investigation {id:$id, owner:$o})
+    `MATCH (t:Task)-[:FROM_INVESTIGATION]->(m:Investigation {id:$id})
      OPTIONAL MATCH (t)-[:FOR]->(i:Incident)
      OPTIONAL MATCH (t)-[:ASSIGNED_TO]->(d:Developer)
      RETURN
@@ -399,7 +426,7 @@ export async function getInvestigation(owner, id) {
        i.id AS incident,
        d.id AS developer
      ORDER BY t.created DESC`,
-    { id, o: owner }
+    { id }
   );
 
   let decision = null;

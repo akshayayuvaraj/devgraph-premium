@@ -103,7 +103,7 @@ function go(p){document.querySelectorAll('[data-p]').forEach(s=>s.hidden=s.datas
 /* ---------- overview ---------- */
 const incRow=i=>`<div class="item"><div>${sev(i.severity)}<span class="tag">${esc(i.status)}</span><b>${esc(i.id)}</b> ${esc(i.title)}<br><span class="mut">${esc(i.service)} · ${esc(i.date)}</span></div></div>`;
 async function loadOverview(){$('stats').innerHTML=sk(2);try{const o=await api('/api/overview');
- $('demo').hidden=!o.demoNodes;$('demo').textContent=o.demoNodes?`This graph ("${o.graph}") contains ${o.demoNodes} clearly labelled DEMO records (sample scenario). Replace them with your own data for real use.`:'';
+
  $('stats').innerHTML=[['Nodes',o.nodes],['Relationships',o.edges],['Services',o.components],['Your investigations',o.investigations]].map(([l,v])=>`<div class="card stat"><b>${v}</b>${l}</div>`).join('');
  $('unres').innerHTML=o.unresolved.map(incRow).join('')||empty('No unresolved incidents.');$('recent').innerHTML=o.recentIncidents.map(incRow).join('')||empty('No incidents recorded.');
  $('otasks').innerHTML=o.openTasks.map(t=>`<div class="item"><div>${esc(t.title)}<br><span class="mut">${esc(t.incident||'-')} · ${esc(t.developer||'unassigned')}</span></div><span class="tag">${esc(t.status)}</span></div>`).join('')||empty('No open tasks.');
@@ -188,11 +188,93 @@ $('uf').onsubmit=async e=>{e.preventDefault();$('uerr').textContent='';try{await
 $('pf').onsubmit=async e=>{e.preventDefault();try{await post('/api/auth/password',{current:$('pc').value,next:$('pn').value});location.reload()}catch(err){$('pm').textContent=err.message}};
 
 /* ---------- auth ---------- */
-async function boot(){const s=await fetch('/api/auth/status').then(r=>r.json());
- if(s.user){ME=s.user;$('auth').hidden=true;$('app').hidden=false;$('me').textContent=s.user.email;$('role').textContent=s.user.role;go('overview');return}
- ME=null;$('app').hidden=true;$('auth').hidden=false;window.MODE=s.setupRequired?'register':'login';
- $('atitle').textContent=s.setupRequired?'Create the first account (admin)':'Sign in';$('ahint').textContent=s.setupRequired?'First-time setup. No default admin exists.':(s.signupOpen?'':'Ask an admin for an account.')}
-$('af').onsubmit=async e=>{e.preventDefault();$('aerr').textContent='';try{await post('/api/auth/'+window.MODE,{email:$('em').value,password:$('pw').value});$('pw').value='';boot()}catch(err){$('aerr').textContent=err.message}};
-$('out').onclick=async()=>{await post('/api/auth/logout',{});location.href='/'};
+
+/* ---------- auth ---------- */
+
+// Show a usable login screen immediately.
+$('auth').hidden = false;
+$('app').hidden = true;
+$('atitle').textContent = 'Sign in';
+$('ahint').textContent = 'Checking server connection…';
+
+async function boot() {
+  const title = $('atitle');
+  const hint = $('ahint');
+  const error = $('aerr');
+
+  try {
+    const response = await fetch('/api/auth/status');
+    const s = await response.json();
+
+    if (!response.ok) {
+      throw new Error(s.error || 'Server connection failed.');
+    }
+
+    if (s.user) {
+      ME = s.user;
+      $('auth').hidden = true;
+      $('app').hidden = false;
+      $('me').textContent = s.user.email;
+      $('role').textContent = s.user.role;
+      go('overview');
+      return;
+    }
+
+    ME = null;
+    $('app').hidden = true;
+    $('auth').hidden = false;
+
+    window.MODE = s.setupRequired ? 'register' : 'login';
+
+    title.textContent = s.setupRequired
+      ? 'Create the first account (admin)'
+      : 'Sign in';
+
+    hint.textContent = s.setupRequired
+      ? 'First-time setup. No default admin exists.'
+      : (s.signupOpen ? '' : 'Ask an admin for an account.');
+  } catch (err) {
+    ME = null;
+    $('app').hidden = true;
+    $('auth').hidden = false;
+    title.textContent = 'Sign in';
+    hint.textContent =
+      'The server is not ready. Please try again shortly.';
+    error.textContent = err.message;
+  }
+}
+
+$('af').onsubmit = async e => {
+  e.preventDefault();
+  $('aerr').textContent = '';
+
+  const button = $('af').querySelector('button[type="submit"], button:not([type])');
+  button.disabled = true;
+
+  try {
+    await post('/api/auth/' + window.MODE, {
+      email: $('em').value,
+      password: $('pw').value
+    });
+
+    $('pw').value = '';
+    await boot();
+  } catch (err) {
+    $('aerr').textContent = err.message;
+  } finally {
+    button.disabled = false;
+  }
+};
+
+$('out').onclick = async () => {
+  try {
+    await post('/api/auth/logout', {});
+    location.href = '/';
+  } catch (err) {
+    toast(err.message, 'bad');
+  }
+};
+
 boot();
+
 </script></body></html>
