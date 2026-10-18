@@ -166,7 +166,7 @@ Review the test output carefully: integration tests may require external service
 
 ## ☁️ Live Demo
 
-**Application:** [https://devgraph-premium.vercel.app](https://devgraph-premium.vercel.app)
+**Application:** https://devgraph-premium.onrender.com/
 
 For a reliable demonstration, verify that:
 
